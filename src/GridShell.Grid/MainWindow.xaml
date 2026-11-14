@@ -112,7 +112,7 @@
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource TileSelectionBorderBrush}" />
                     <DataTrigger.EnterActions>
-                        <BeginStoryboard x:Name="TileHoverSelectionStoryboard">
+                        <BeginStoryboard>
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetProperty="(Border.BorderBrush).(LinearGradientBrush.RelativeTransform).(RotateTransform.Angle)"
                                                  From="0" To="360" Duration="0:0:4"
@@ -123,9 +123,6 @@
                             </Storyboard>
                         </BeginStoryboard>
                     </DataTrigger.EnterActions>
-                    <DataTrigger.ExitActions>
-                        <StopStoryboard BeginStoryboardName="TileHoverSelectionStoryboard" />
-                    </DataTrigger.ExitActions>
                 </DataTrigger>
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
@@ -134,7 +131,7 @@
                     </MultiDataTrigger.Conditions>
                     <Setter Property="BorderBrush" Value="{DynamicResource TileSelectionBorderBrush}" />
                     <MultiDataTrigger.EnterActions>
-                        <BeginStoryboard x:Name="TileSelectedSelectionStoryboard">
+                        <BeginStoryboard>
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetProperty="(Border.BorderBrush).(LinearGradientBrush.RelativeTransform).(RotateTransform.Angle)"
                                                  From="0" To="360" Duration="0:0:4"
@@ -145,9 +142,6 @@
                             </Storyboard>
                         </BeginStoryboard>
                     </MultiDataTrigger.EnterActions>
-                    <MultiDataTrigger.ExitActions>
-                        <StopStoryboard BeginStoryboardName="TileSelectedSelectionStoryboard" />
-                    </MultiDataTrigger.ExitActions>
                 </MultiDataTrigger>
                 <!-- Website tiles alone get Rename/Change Icon/Remove here - App tiles have no
                      right-click menu at all. A GameTileTemplate Border's own local ContextMenu
