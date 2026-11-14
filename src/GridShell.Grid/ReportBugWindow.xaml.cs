@@ -2,7 +2,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using GridShell.Core.Interop;
 
@@ -18,6 +20,7 @@ namespace GridShell;
 public partial class ReportBugWindow : Window
 {
     private const string RepoUrl = "https://github.com/theskysanctum/gridshell";
+    private const int MaxPrefilledIssueUrlLength = 1800;
     private static readonly string LogPath = Path.Combine(Path.GetTempPath(), "GridShell-errors.log");
 
     public ReportBugWindow()
@@ -33,15 +36,29 @@ public partial class ReportBugWindow : Window
     {
         var body = BuildBody(DescriptionBox.Text.Trim(), IncludeLogCheckBox.IsChecked == true);
         var url = $"{RepoUrl}/issues/new?title={Uri.EscapeDataString("Bug report")}&body={Uri.EscapeDataString(body)}";
+        var reportTooLong = url.Length > MaxPrefilledIssueUrlLength;
 
         try
         {
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo(reportTooLong ? $"{RepoUrl}/issues/new" : url) { UseShellExecute = true });
         }
         catch (Win32Exception)
         {
             new ToastWindow("Couldn't open the browser - no default browser is set.", TimeSpan.FromSeconds(5), isWarning: true).Show();
             return;
+        }
+
+        if (reportTooLong)
+        {
+            try
+            {
+                Clipboard.SetText(body);
+                new ToastWindow("The report was copied. Paste it into the GitHub issue.", TimeSpan.FromSeconds(6)).Show();
+            }
+            catch (Exception ex) when (ex is ExternalException or ThreadStateException or InvalidOperationException)
+            {
+                new ToastWindow("The report is too long to prefill, and couldn't be copied. Please attach the log manually.", TimeSpan.FromSeconds(6), isWarning: true).Show();
+            }
         }
 
         DialogResult = true;

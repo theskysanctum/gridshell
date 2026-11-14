@@ -112,7 +112,7 @@
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsMouseOver}" Value="True">
                     <Setter Property="BorderBrush" Value="{DynamicResource TileSelectionBorderBrush}" />
                     <DataTrigger.EnterActions>
-                        <BeginStoryboard>
+                        <BeginStoryboard x:Name="TileHoverSelectionStoryboard">
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetProperty="(Border.BorderBrush).(LinearGradientBrush.RelativeTransform).(RotateTransform.Angle)"
                                                  From="0" To="360" Duration="0:0:4"
@@ -124,7 +124,7 @@
                         </BeginStoryboard>
                     </DataTrigger.EnterActions>
                     <DataTrigger.ExitActions>
-                        <StopStoryboard />
+                        <StopStoryboard BeginStoryboardName="TileHoverSelectionStoryboard" />
                     </DataTrigger.ExitActions>
                 </DataTrigger>
                 <MultiDataTrigger>
@@ -134,7 +134,7 @@
                     </MultiDataTrigger.Conditions>
                     <Setter Property="BorderBrush" Value="{DynamicResource TileSelectionBorderBrush}" />
                     <MultiDataTrigger.EnterActions>
-                        <BeginStoryboard>
+                        <BeginStoryboard x:Name="TileSelectedSelectionStoryboard">
                             <Storyboard>
                                 <DoubleAnimation Storyboard.TargetProperty="(Border.BorderBrush).(LinearGradientBrush.RelativeTransform).(RotateTransform.Angle)"
                                                  From="0" To="360" Duration="0:0:4"
@@ -146,7 +146,7 @@
                         </BeginStoryboard>
                     </MultiDataTrigger.EnterActions>
                     <MultiDataTrigger.ExitActions>
-                        <StopStoryboard />
+                        <StopStoryboard BeginStoryboardName="TileSelectedSelectionStoryboard" />
                     </MultiDataTrigger.ExitActions>
                 </MultiDataTrigger>
                 <!-- Website tiles alone get Rename/Change Icon/Remove here - App tiles have no
