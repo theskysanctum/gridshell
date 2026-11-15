@@ -46,6 +46,8 @@ img{max-width:100%}
 h1{margin:1rem 0 0;font:700 clamp(2.5rem,5vw,4rem)/1 var(--display-font);letter-spacing:-.01em;text-transform:uppercase}
 .hero p.sub{margin:1.2rem 0 0;font-size:1.15rem;max-width:31rem;color:var(--muted)}
 .acts{display:flex;gap:1rem;flex-wrap:wrap;margin-top:1.8rem}
+.release-status{flex-basis:100%;margin:0;color:var(--muted);font-size:.85rem}
+.release-status.error{color:var(--red)}
 .btn{display:inline-block;padding:.92rem 1.4rem;font:800 1rem var(--display-font);letter-spacing:.03em;text-transform:uppercase;text-decoration:none;clip-path:polygon(0 0,calc(100% - .9rem) 0,100% .9rem,100% 100%,.9rem 100%,0 calc(100% - .9rem));transition:transform .12s ease,box-shadow .12s ease}
 .btn:hover{transform:translate(-2px,-2px)}
 .btn.main{background:var(--accent);color:#171b20;border:2px solid #171b20;box-shadow:5px 5px 0 rgba(0,0,0,.4)}
@@ -229,7 +231,7 @@ footer .wrap{display:flex;gap:.5rem 1.5rem;flex-wrap:wrap;align-items:center}
 <a href="#start">Get started</a>
 <a href="#faq">FAQ</a>
 <a href="https://github.com/theskysanctum/gridshell">GitHub</a>
-<a class="dl" href="https://github.com/theskysanctum/gridshell/releases/latest/download/GridShell-Setup.exe">Download</a>
+<a class="dl" href="#downloads">Download</a>
 </nav>
 </div></div>
 
@@ -238,9 +240,11 @@ footer .wrap{display:flex;gap:.5rem 1.5rem;flex-wrap:wrap;align-items:center}
 <div class="kicker">Windows shell</div>
 <h1>Your Windows desktop, built for the couch.</h1>
 <p class="sub">GridShell replaces the Start Menu and taskbar with a fullscreen, controller-first launcher. It includes fixed shortcuts for popular websites, game cover search, a dual-pane file explorer, download manager, and emulation tools.</p>
-<div class="acts">
-<a class="btn main" href="https://github.com/theskysanctum/gridshell/releases/latest/download/GridShell-Setup.exe">Download for Windows</a>
+<div class="acts" id="downloads">
+<a class="btn main release-link" id="stable-download" href="https://github.com/theskysanctum/gridshell/releases/latest/download/GridShell-Setup.exe">Stable — checking latest release</a>
+<a class="btn alt release-link" id="nightly-download" href="https://github.com/theskysanctum/gridshell/releases">Nightly — checking latest release</a>
 <a class="btn alt" href="#features">See what it does</a>
+<p class="release-status" id="release-status" aria-live="polite">Checking the latest stable and nightly releases…</p>
 </div>
 <ul class="ul-rail">
 <li>Open source</li>
@@ -488,7 +492,7 @@ footer .wrap{display:flex;gap:.5rem 1.5rem;flex-wrap:wrap;align-items:center}
 <p>The installer is self-contained. You don't have to install .NET first to get running.</p>
 </div>
 <ol class="steps">
-<li><b>Download the installer</b><span>Grab the latest <code>GridShell-Setup</code> build from the GitHub releases page.</span></li>
+<li><b>Download the installer</b><span>Choose Stable for the latest release, or Nightly to try the latest build from <code>master</code>.</span></li>
 <li><b>Run it</b><span>It installs to <code>C:\GridShell</code> and asks for admin permissions so shell integration can work correctly.</span></li>
 <li><b>Pick up a controller</b><span>Launch the app and use the D-pad or stick to move between tiles, then press face buttons to open things.</span></li>
 </ol>
@@ -540,6 +544,75 @@ footer .wrap{display:flex;gap:.5rem 1.5rem;flex-wrap:wrap;align-items:center}
 </div></footer>
 
 <script>
+(function(){
+var repository='theskysanctum/gridshell';
+var releasesUrl='https://github.com/'+repository+'/releases';
+var stableLink=document.getElementById('stable-download');
+var nightlyLink=document.getElementById('nightly-download');
+var status=document.getElementById('release-status');
+
+function setReleaseLink(link,release,channel){
+var prefix=channel==='stable'?'v':'nightly-';
+var version=release.tag_name.slice(prefix.length);
+var asset=release.assets.find(function(item){return item.name==='GridShell-Setup.exe'});
+if(!asset)return false;
+link.href=asset.browser_download_url;
+link.textContent=(channel==='stable'?'Stable ':'Nightly ')+version;
+link.setAttribute('aria-label','Download GridShell '+channel+' '+version);
+return true;
+}
+
+async function loadCurrentReleases(){
+var latest={stable:null,nightly:null};
+var page=1;
+
+while((!latest.stable||!latest.nightly)){
+var response=await fetch('https://api.github.com/repos/'+repository+'/releases?per_page=100&page='+page);
+if(!response.ok)throw new Error('GitHub API returned HTTP '+response.status);
+var releases=await response.json();
+if(!Array.isArray(releases))throw new Error('GitHub API returned an invalid releases list');
+
+releases.forEach(function(release){
+if(release.draft||!Array.isArray(release.assets)||!release.assets.some(function(asset){return asset.name==='GridShell-Setup.exe'}))return;
+if(!latest.stable&&!release.prerelease&&/^v\d+\.\d+\.\d+$/.test(release.tag_name))latest.stable=release;
+if(!latest.nightly&&release.prerelease&&/^nightly-\d+\.\d+\.\d+$/.test(release.tag_name))latest.nightly=release;
+});
+
+if(releases.length<100)break;
+page++;
+}
+
+var stableReady=latest.stable&&setReleaseLink(stableLink,latest.stable,'stable');
+var nightlyReady=latest.nightly&&setReleaseLink(nightlyLink,latest.nightly,'nightly');
+var unavailable=[];
+if(!stableReady){
+stableLink.textContent='Stable — latest release';
+stableLink.setAttribute('aria-label','Download the latest stable GridShell release');
+unavailable.push('stable release not found');
+}
+if(!nightlyReady){
+nightlyLink.href=releasesUrl;
+nightlyLink.textContent='Nightly — not published yet';
+nightlyLink.setAttribute('aria-label','Browse GridShell releases; no nightly installer is published yet');
+unavailable.push('nightly release not found');
+}
+status.textContent=unavailable.length
+?unavailable.join('; ')+'. Browse all releases on GitHub.'
+:'Latest stable '+latest.stable.tag_name+' and nightly '+latest.nightly.tag_name+'.';
+}
+
+loadCurrentReleases().catch(function(error){
+status.classList.add('error');
+status.textContent='Could not load current release links. Stable uses GitHub’s latest release; browse GitHub releases for nightly builds.';
+stableLink.textContent='Stable — latest release';
+stableLink.setAttribute('aria-label','Download the latest stable GridShell release');
+nightlyLink.href=releasesUrl;
+nightlyLink.textContent='Browse Nightly Releases';
+nightlyLink.setAttribute('aria-label','Browse GridShell releases on GitHub');
+console.error('Failed to load current GridShell releases',error);
+});
+})();
+
 (function(){
 var el=document.getElementById('mosaic');if(!el)return;
 var t=[].slice.call(el.querySelectorAll('.t')),i=0;t[0].classList.add('on');

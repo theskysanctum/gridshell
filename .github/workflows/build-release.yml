@@ -2,7 +2,7 @@ name: Build and release installer
 
 on:
   push:
-    branches: [master]
+    branches: [master, stable]
     paths:
       - src/**
       - installer/**
@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.ref_name == 'master' || github.ref_name == 'stable'
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -83,7 +84,16 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          tag="v$VERSION"
+          if [[ "$GITHUB_REF_NAME" == "stable" ]]; then
+            channel="stable"
+            tag="v$VERSION"
+            title="GridShell $VERSION"
+          else
+            channel="nightly"
+            tag="nightly-$VERSION"
+            title="GridShell $VERSION Nightly"
+          fi
+
           if gh release view "$tag" > /dev/null 2>&1; then
             echo "Release $tag already exists"
             exit 0
@@ -92,16 +102,22 @@ jobs:
           installer_path="installer/Output/GridShell-Setup-$VERSION.exe"
           sum=$(sha256sum "$installer_path" | cut -d' ' -f1)
 
-          # A second, version-less copy so the website's download button can link straight to
-          # https://github.com/.../releases/latest/download/GridShell-Setup.exe - GitHub's fixed
-          # "latest" alias only works for an asset whose filename never changes release to
-          # release, unlike the primary versioned one above.
-          stable_path="installer/Output/GridShell-Setup.exe"
-          cp "$installer_path" "$stable_path"
+          # Keep a version-less asset name so the website can resolve the current build in each channel.
+          current_path="installer/Output/GridShell-Setup.exe"
+          cp "$installer_path" "$current_path"
 
-          gh release create "$tag" "$installer_path" "$stable_path" \
-            --target "$GITHUB_SHA" \
-            --title "GridShell $VERSION" \
-            --notes "GridShell $VERSION.
+          release_args=(
+            --target "$(git rev-parse HEAD)"
+            --title "$title"
+            --notes "GridShell $VERSION ($channel).
 
           SHA-256 of GridShell-Setup-$VERSION.exe: $sum"
+          )
+
+          if [[ "$channel" == "stable" ]]; then
+            release_args+=(--latest)
+          else
+            release_args+=(--prerelease --latest=false)
+          fi
+
+          gh release create "$tag" "$installer_path" "$current_path" "${release_args[@]}"
